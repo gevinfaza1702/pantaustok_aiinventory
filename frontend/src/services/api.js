@@ -5,6 +5,43 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// ─── Auth interceptor ─────────────────────────────────────
+// Attach the JWT from localStorage to every request.
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('ps_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// On 401, clear the session and bounce to login.
+api.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    if (error.response?.status === 401 && !window.location.pathname.startsWith('/login')) {
+      localStorage.removeItem('ps_token');
+      localStorage.removeItem('ps_user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// ─── Auth APIs ────────────────────────────────────────────
+export const authAPI = {
+  login: (username, password) => {
+    // OAuth2 password flow expects form-urlencoded body
+    const body = new URLSearchParams({ username, password });
+    return api.post('/auth/login', body, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+  },
+  me:       ()     => api.get('/auth/me'),
+  register: (data) => api.post('/auth/register', data),
+  listUsers:()     => api.get('/auth/users'),
+};
+
 // ─── Core APIs ────────────────────────────────────────────
 export const dashboardAPI = {
   getDashboard: () => api.get('/analytics/dashboard'),
@@ -55,6 +92,8 @@ export const reorderAPI = {
   getOrders:      ()           => api.get('/reorder/orders'),
   placeOrder:     (params)     => api.post('/reorder/orders', null, { params }),
   updateStatus:   (id, status) => api.put(`/reorder/orders/${id}/status?status=${status}`),
+  receive:        (id, data)   => api.put(`/reorder/orders/${id}/receive`, data),
+  getTimeline:    (id)         => api.get(`/reorder/orders/${id}/timeline`),
 };
 
 export const intelligenceAPI = {
@@ -77,6 +116,61 @@ export const exportAPI = {
 
 export const auditAPI = {
   getLogs: (params) => api.get('/audit/logs', { params }),
+};
+
+// ─── Mega Feature APIs ────────────────────────────────────
+
+export const pnlAPI = {
+  getOverview:   ()       => api.get('/pnl/overview'),
+  getByProduct:  ()       => api.get('/pnl/by-product'),
+  getByCategory: ()       => api.get('/pnl/by-category'),
+  getTrend:      (period='daily') => api.get(`/pnl/trend?period=${period}`),
+  getHeatmap:    ()       => api.get('/pnl/heatmap'),
+};
+
+export const warehouseAPI = {
+  getAll:        ()       => api.get('/warehouses'),
+  create:        (data)   => api.post('/warehouses', data),
+  getStock:      (id)     => api.get(`/warehouses/${id}/stock`),
+  transfer:      (data)   => api.post('/warehouses/transfer', data),
+  getConsolidated: ()     => api.get('/warehouses/consolidated'),
+};
+
+export const barcodeAPI = {
+  lookupBySku:   (sku)    => api.get(`/products/by-sku/${encodeURIComponent(sku)}`),
+  qrLabelUrl:    (id)     => `${api.defaults.baseURL}/products/${id}/qr-label`,
+};
+
+export const calendarAPI = {
+  getEvents:     (start, end) => api.get('/calendar/events', { params: { start, end } }),
+};
+
+export const stockOpnameAPI = {
+  list:          ()       => api.get('/stock-opname'),
+  create:        (data)   => api.post('/stock-opname', data),
+  getById:       (id)     => api.get(`/stock-opname/${id}`),
+  recordCounts:  (id, items) => api.put(`/stock-opname/${id}/items`, { items }),
+  approve:       (id)     => api.post(`/stock-opname/${id}/approve`),
+};
+
+export const dashboardLayoutAPI = {
+  getLayouts:    ()       => api.get('/dashboard/layouts'),
+  saveLayout:    (data)   => api.post('/dashboard/layouts', data),
+  updateLayout:  (id, data) => api.put(`/dashboard/layouts/${id}`, data),
+};
+
+export const ecommerceAPI = {
+  getChannels:   ()       => api.get('/ecommerce/channels'),
+  createChannel: (data)   => api.post('/ecommerce/channels', data),
+  sync:          (id)     => api.post(`/ecommerce/channels/${id}/sync`),
+  getOrders:     ()       => api.get('/ecommerce/orders'),
+};
+
+export const reportsAPI = {
+  getSchedules:  ()       => api.get('/reports/schedules'),
+  createSchedule:(data)   => api.post('/reports/schedules', data),
+  deleteSchedule:(id)     => api.delete(`/reports/schedules/${id}`),
+  generate:      (data)   => api.post('/reports/generate', data, { responseType: 'blob' }),
 };
 
 export default api;

@@ -5,13 +5,14 @@ for products that fall at or below their minimum stock level.
 """
 
 from uuid import UUID
-from datetime import datetime
-from typing import List, Dict, Any
+from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional
 
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from models.db_models import Product, Supplier
+from models.db_models import Product, Supplier, StockMovement
 from models.extended_models import PurchaseOrder
 
 
@@ -98,11 +99,120 @@ async def update_po_status(session: AsyncSession, po_id: UUID, status: str) -> P
     """Update the status of a PO (e.g. ordered → received)."""
     po = await session.get(PurchaseOrder, po_id)
     if not po:
-        from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Purchase order not found")
 
     po.status = status
+    if status == "ordered" and not po.ordered_at:
+        po.ordered_at = datetime.utcnow()
+        # Estimate expected arrival from the product's lead time
+        product = await session.get(Product, po.product_id)
+        lead = product.lead_time_days if product and product.lead_time_days else 7
+        po.expected_arrival = datetime.utcnow() + timedelta(days=lead)
     po.updated_at = datetime.utcnow()
     await session.commit()
     await session.refresh(po)
     return po
+
+
+async def receive_purchase_order(
+    session: AsyncSession, po_id: UUID, received_qty: int, create_movement: bool = True
+) -> PurchaseOrder:
+    """
+    Record a (partial or full) receipt against a PO.
+    Creates an inbound StockMovement, updates the product stock,
+    and refreshes the supplier reliability score based on delivery timeliness.
+    """
+    po = await session.get(PurchaseOrder, po_id)
+    if not po:
+        raise HTTPException(status_code=404, detail="Purchase order not found")
+    if received_qty <= 0:
+        raise HTTPException(status_code=400, detail="Received quantity must be positive")
+
+    already = po.received_qty or 0
+    if already + received_qty > po.order_qty:
+        raise HTTPException(status_code=400, detail="Received exceeds ordered quantity")
+
+    po.received_qty = already + received_qty
+    po.actual_arrival = datetime.utcnow()
+
+    if po.received_qty >= po.order_qty:
+        po.status = "received"
+        po.partial_received = False
+    else:
+        po.status = "partial"
+        po.partial_received = True
+
+    # Bump product stock + audit via a stock movement
+    product = await session.get(Product, po.product_id)
+    if product and create_movement:
+        product.current_stock = (product.current_stock or 0) + received_qty
+        movement = StockMovement(
+            product_id=po.product_id,
+            movement_type="in",
+            quantity=received_qty,
+            reference=f"PO-{str(po.id)[:8]}",
+            notes="Goods received against purchase order",
+            unit_cost=po.unit_cost,
+            created_by="reorder",
+        )
+        session.add(movement)
+
+    # Update supplier reliability if we have an expectation to compare against
+    if po.supplier_id and po.expected_arrival and po.status == "received":
+        await _refresh_supplier_reliability(session, po.supplier_id, po.expected_arrival, po.actual_arrival)
+
+    po.updated_at = datetime.utcnow()
+    await session.commit()
+    await session.refresh(po)
+    return po
+
+
+async def _refresh_supplier_reliability(
+    session: AsyncSession, supplier_id: UUID, expected: datetime, actual: datetime
+) -> None:
+    """Nudge the supplier reliability score toward on-time performance."""
+    supplier = await session.get(Supplier, supplier_id)
+    if not supplier:
+        return
+    on_time = actual <= expected
+    current = float(supplier.reliability_score or 0.9)
+    # Exponential moving average toward 1.0 (on time) or 0.6 (late)
+    target = 1.0 if on_time else 0.6
+    supplier.reliability_score = round(current * 0.8 + target * 0.2, 2)
+
+
+def get_po_timeline(po: PurchaseOrder) -> List[Dict[str, Any]]:
+    """Build an ordered lifecycle timeline for a PO."""
+    events = [{"stage": "created", "label": "PO Dibuat", "at": po.created_at.isoformat() if po.created_at else None, "done": True}]
+    events.append({
+        "stage": "ordered", "label": "Dipesan ke Pemasok",
+        "at": po.ordered_at.isoformat() if po.ordered_at else None,
+        "done": po.ordered_at is not None,
+    })
+    events.append({
+        "stage": "expected", "label": "Perkiraan Tiba",
+        "at": po.expected_arrival.isoformat() if po.expected_arrival else None,
+        "done": po.actual_arrival is not None,
+    })
+    received_label = "Diterima"
+    if po.partial_received:
+        received_label = f"Diterima Sebagian ({po.received_qty}/{po.order_qty})"
+    events.append({
+        "stage": "received", "label": received_label,
+        "at": po.actual_arrival.isoformat() if po.actual_arrival else None,
+        "done": po.status == "received",
+    })
+    return events
+
+
+def calculate_lead_time_accuracy(po: PurchaseOrder) -> Optional[Dict[str, Any]]:
+    """Compare expected vs actual arrival for a received PO."""
+    if not po.expected_arrival or not po.actual_arrival:
+        return None
+    delta_days = (po.actual_arrival - po.expected_arrival).days
+    return {
+        "expected_arrival": po.expected_arrival.isoformat(),
+        "actual_arrival": po.actual_arrival.isoformat(),
+        "delta_days": delta_days,
+        "on_time": delta_days <= 0,
+    }

@@ -13,7 +13,18 @@ class Settings(BaseSettings):
     SUMOPOD_MODEL: str = "seed-2-0-mini-free"
     
     SECRET_KEY: str = "DEVELOPMENT_SECRET_KEY_REPLACE_IN_PROD"
-    
+
+    # Auth / JWT
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
+
+    # SMTP (Scheduled Reports — optional, leave blank to disable email sending)
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = "noreply@pantaustok.local"
+
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/stocksense"
     

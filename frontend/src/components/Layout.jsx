@@ -1,8 +1,10 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useState, useCallback } from 'react';
-import { Bell, Sun, Moon, X } from 'lucide-react';
+import { Bell, Sun, Moon, X, Globe, LogOut } from 'lucide-react';
 import Sidebar from './Sidebar';
 import { alertsAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n/i18n';
 import './Layout.css';
 
 /** Derive a readable page title from the URL pathname */
@@ -26,6 +28,8 @@ function getPageTitle(pathname) {
 export default function Layout() {
   const location = useLocation();
   const pageTitle = getPageTitle(location.pathname);
+  const { user, logout } = useAuth();
+  const { lang, toggleLang } = useI18n();
 
   // Sidebar collapse
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -83,6 +87,12 @@ export default function Layout() {
               <input type="text" placeholder="Search anything..." />
             </div>
 
+            {/* Language Toggle */}
+            <button className="topbar__icon-btn topbar__lang" onClick={toggleLang} title="Language">
+              <Globe size={16} />
+              <span className="topbar__lang-code">{lang.toUpperCase()}</span>
+            </button>
+
             {/* Theme Toggle */}
             <button className="topbar__icon-btn" onClick={toggleTheme} title="Toggle theme">
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
@@ -138,6 +148,22 @@ export default function Layout() {
                 </div>
               )}
             </div>
+
+            {/* User + Logout */}
+            {user && (
+              <div className="topbar__user">
+                <div className="topbar__user-avatar">
+                  {(user.full_name || user.username || '?').charAt(0).toUpperCase()}
+                </div>
+                <div className="topbar__user-meta">
+                  <span className="topbar__user-name">{user.full_name || user.username}</span>
+                  <span className="topbar__user-role">{user.role}</span>
+                </div>
+                <button className="topbar__icon-btn" onClick={logout} title="Logout">
+                  <LogOut size={17} />
+                </button>
+              </div>
+            )}
           </div>
         </header>
 

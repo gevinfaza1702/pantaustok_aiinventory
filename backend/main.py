@@ -9,8 +9,21 @@ from routers import products, suppliers, stock_movements, forecasting, analytics
 # New feature routers
 from routers import reorder, intelligence, ai_router, export_router, audit_router, bulk_import
 
-# Ensure extended models are registered with SQLAlchemy metadata
-import models.extended_models  # noqa: F401
+# Mega-feature routers
+from routers import (
+    auth_router, pnl_router, warehouse_router, barcode_router,
+    calendar_router, stockopname_router, dashboard_router,
+    ecommerce_router, report_router,
+)
+
+# Ensure all ORM models are registered with SQLAlchemy metadata
+import models.extended_models   # noqa: F401
+import models.auth_models       # noqa: F401
+import models.warehouse_models  # noqa: F401
+import models.stockopname_models  # noqa: F401
+import models.dashboard_models  # noqa: F401
+import models.ecommerce_models  # noqa: F401
+import models.report_models     # noqa: F401
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -45,11 +58,28 @@ app.include_router(export_router.router,   prefix=settings.API_STR)
 app.include_router(audit_router.router,    prefix=settings.API_STR)
 app.include_router(bulk_import.router,     prefix=settings.API_STR)
 
+# ─── Mega Feature Routes ─────────────────────────────────
+app.include_router(auth_router.router,      prefix=settings.API_STR)
+app.include_router(pnl_router.router,       prefix=settings.API_STR)
+app.include_router(warehouse_router.router, prefix=settings.API_STR)
+app.include_router(barcode_router.router,   prefix=settings.API_STR)
+app.include_router(calendar_router.router,  prefix=settings.API_STR)
+app.include_router(stockopname_router.router, prefix=settings.API_STR)
+app.include_router(dashboard_router.router, prefix=settings.API_STR)
+app.include_router(ecommerce_router.router, prefix=settings.API_STR)
+app.include_router(report_router.router,    prefix=settings.API_STR)
+
 
 @app.on_event("startup")
 async def on_startup():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Seed a default admin user on first boot
+    from database import AsyncSessionLocal
+    from services.auth_service import ensure_default_admin
+    async with AsyncSessionLocal() as session:
+        await ensure_default_admin(session)
 
 
 @app.get(f"{settings.API_STR}/health")

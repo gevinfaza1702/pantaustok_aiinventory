@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useAnalytics } from '../hooks/useAnalytics';
 import KPICard from '../components/KPICard';
+import { dashboardLayoutAPI } from '../services/api';
 import { formatCurrency, formatNumber } from '../utils/formatters';
-import { 
-  Package, AlertTriangle, AlertOctagon, 
-  DollarSign, Activity, BarChart2, Sparkles, Loader2, Play
+import {
+  Package, AlertTriangle, AlertOctagon,
+  DollarSign, Activity, BarChart2, Sparkles, Loader2, Play,
+  Settings2, Maximize2, Minimize2, Check
 } from 'lucide-react';
 import {
   Chart as ChartJS,
@@ -76,13 +78,54 @@ const doughnutOptions = {
   cutout: '68%'
 };
 
+const ALL_WIDGETS = [
+  { key: 'kpis',         label: 'KPI Cards' },
+  { key: 'ai',           label: 'AI Insights' },
+  { key: 'demand_trend', label: 'Demand Trend' },
+  { key: 'stock_dist',   label: 'Stock Distribution' },
+  { key: 'category',     label: 'Products by Category' },
+];
+const DEFAULT_WIDGETS = ALL_WIDGETS.map((w) => w.key);
+
 export default function Dashboard() {
   const { data, insights, loading, insightsLoading, error, refetch, fetchInsights } = useAnalytics();
   const [aiLang, setAiLang] = useState('id');
 
+  // Custom dashboard builder state
+  const [editMode, setEditMode] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [layoutId, setLayoutId] = useState(null);
+  const [visible, setVisible] = useState(DEFAULT_WIDGETS);
+
   useEffect(() => {
     refetch();
   }, [refetch]);
+
+  // Load saved layout once
+  useEffect(() => {
+    dashboardLayoutAPI.getLayouts()
+      .then((r) => {
+        const def = r.data.find((l) => l.is_default) || r.data[0];
+        if (def) { setLayoutId(def.id); if (def.widgets?.length) setVisible(def.widgets); }
+      })
+      .catch(() => { /* no layout yet */ });
+  }, []);
+
+  const isOn = (key) => visible.includes(key);
+  const toggleWidget = (key) =>
+    setVisible((v) => (v.includes(key) ? v.filter((k) => k !== key) : [...v, key]));
+
+  const saveLayout = async () => {
+    try {
+      if (layoutId) {
+        await dashboardLayoutAPI.updateLayout(layoutId, { name: 'My Dashboard', widgets: visible });
+      } else {
+        const r = await dashboardLayoutAPI.saveLayout({ name: 'My Dashboard', widgets: visible });
+        setLayoutId(r.data.id);
+      }
+      setEditMode(false);
+    } catch (e) { console.error(e); }
+  };
 
   if (loading || !data) {
     return (
@@ -142,9 +185,37 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="dashboard">
+    <div className={`dashboard ${fullscreen ? 'dashboard--fullscreen' : ''}`}>
+
+      {/* Builder toolbar */}
+      <div className="dashboard__toolbar">
+        {editMode && (
+          <div className="dashboard__widget-picker">
+            {ALL_WIDGETS.map((w) => (
+              <button
+                key={w.key}
+                className={`dashboard__widget-chip ${isOn(w.key) ? 'dashboard__widget-chip--on' : ''}`}
+                onClick={() => toggleWidget(w.key)}
+              >
+                {isOn(w.key) && <Check size={12} />} {w.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="dashboard__toolbar-actions">
+          {editMode ? (
+            <button className="btn btn-primary" onClick={saveLayout}><Check size={14} /> Simpan Layout</button>
+          ) : (
+            <button className="btn btn-secondary" onClick={() => setEditMode(true)}><Settings2 size={14} /> Atur Dasbor</button>
+          )}
+          <button className="btn btn-secondary" onClick={() => setFullscreen((f) => !f)} title="Fullscreen">
+            {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+          </button>
+        </div>
+      </div>
 
       {/* KPI Cards */}
+      {isOn('kpis') && (
       <section className="dashboard__kpis">
         <KPICard title="Total Products"      value={formatNumber(kpis.total_products)}       icon={Package}      color="accent"   />
         <KPICard title="Low Stock Alerts"    value={kpis.low_stock_count}                    icon={AlertTriangle} color="warning"  trend="down" trendValue="12%" />
@@ -153,8 +224,10 @@ export default function Dashboard() {
         <KPICard title="Turnover Rate"       value={`${kpis.avg_turnover_rate}x`}            icon={Activity}     color="info"     trend="up"  trendValue="1.2x" />
         <KPICard title="Forecast Accuracy"   value={`${kpis.forecast_accuracy_mape}%`}       icon={BarChart2}    color="accent"   />
       </section>
+      )}
 
       {/* AI Insights */}
+      {isOn('ai') && (
       <div className="ai-card">
         <div className="ai-card__header">
           <div className="ai-card__icon"><Sparkles size={18} /></div>
@@ -192,9 +265,11 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+      )}
 
       {/* Charts */}
       <section className="dashboard__charts">
+        {isOn('demand_trend') && (
         <div className="chart-card chart-card--large">
           <div className="chart-card__header">
             <h3>Global Demand Trend — 30 Days</h3>
@@ -204,8 +279,10 @@ export default function Dashboard() {
             <Line data={demandTrendData} options={commonOptions} />
           </div>
         </div>
+        )}
 
         <div className="dashboard__charts-row">
+          {isOn('stock_dist') && (
           <div className="chart-card">
             <div className="chart-card__header">
               <h3>Stock Health Distribution</h3>
@@ -214,7 +291,9 @@ export default function Dashboard() {
               <Doughnut data={stockDistData} options={doughnutOptions} />
             </div>
           </div>
+          )}
 
+          {isOn('category') && (
           <div className="chart-card">
             <div className="chart-card__header">
               <h3>Products by Category</h3>
@@ -224,7 +303,7 @@ export default function Dashboard() {
                 data={categoryData}
                 options={{
                   ...commonOptions,
-                  plugins: { 
+                  plugins: {
                     ...commonOptions.plugins,
                     legend: { display: false }
                   }
@@ -232,6 +311,7 @@ export default function Dashboard() {
               />
             </div>
           </div>
+          )}
         </div>
       </section>
 

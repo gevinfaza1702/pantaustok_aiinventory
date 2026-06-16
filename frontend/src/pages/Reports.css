@@ -179,3 +179,43 @@
   color: var(--text-secondary) !important;
   font-size: 13px !important;
 }
+
+/* ── Scheduled Reports ── */
+.report-gen-row { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+
+.schedule-list { display: flex; flex-direction: column; gap: 8px; }
+.schedule-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: var(--bg-secondary);
+  border: 1px solid var(--border-color); border-radius: var(--radius-md);
+}
+.schedule-item__info { display: flex; flex-direction: column; gap: 3px; }
+.schedule-item__name { font-size: 13.5px; font-weight: 600; }
+.schedule-item__meta {
+  display: inline-flex; align-items: center; gap: 5px; flex-wrap: wrap;
+  font-size: 12px; color: var(--text-tertiary); text-transform: capitalize;
+}
+.schedule-item__del { color: var(--text-tertiary); padding: 6px; border-radius: 6px; }
+.schedule-item__del:hover { color: var(--danger); background: var(--danger-muted); }
+
+.report-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center; z-index: 500; backdrop-filter: blur(3px);
+}
+.report-modal {
+  width: 100%; max-width: 440px; margin: 20px;
+  background: var(--bg-secondary); border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg); box-shadow: 0 24px 60px rgba(0,0,0,0.5); animation: fadeIn 0.2s ease-out;
+}
+.report-modal__header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--border-color);
+}
+.report-modal__header h2 { font-size: 16px; }
+.report-modal__header button { color: var(--text-tertiary); }
+.report-form { padding: 20px; display: flex; flex-direction: column; gap: 13px; }
+.report-form label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-secondary); }
+.report-form__opt { color: var(--text-tertiary); font-size: 11px; }
+.report-form__note { font-size: 12px; color: var(--text-tertiary); line-height: 1.5; }
+.report-form__note code { font-family: var(--font-mono); background: var(--bg-elevated); padding: 1px 5px; border-radius: 4px; }
+.report-form__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }

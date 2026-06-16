@@ -1,54 +1,82 @@
-﻿import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Users, ArrowRightLeft,
   LineChart, Bell, FileText, ShoppingCart,
   BrainCircuit, Sparkles, ChevronRight,
-  PanelLeftClose, PanelLeftOpen
+  PanelLeftClose, PanelLeftOpen,
+  TrendingUp, Warehouse, ScanLine, CalendarDays,
+  ClipboardCheck, Store,
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n/i18n';
 import './Sidebar.css';
 
+// minRole: minimum role required to see the item (undefined = everyone)
 const NAV_GROUPS = [
   {
-    label: 'Core',
+    label: 'nav.core',
     links: [
-      { name: 'Dashboard',   icon: LayoutDashboard, path: '/dashboard' },
-      { name: 'Products',    icon: Package,         path: '/products' },
-      { name: 'Suppliers',   icon: Users,           path: '/suppliers' },
-      { name: 'Movements',   icon: ArrowRightLeft,  path: '/movements' },
-      { name: 'Forecasting', icon: LineChart,       path: '/forecasting' },
-      { name: 'Alerts',      icon: Bell,            path: '/alerts' },
+      { key: 'nav.dashboard',   icon: LayoutDashboard, path: '/dashboard' },
+      { key: 'nav.products',    icon: Package,         path: '/products' },
+      { key: 'nav.suppliers',   icon: Users,           path: '/suppliers' },
+      { key: 'nav.movements',   icon: ArrowRightLeft,  path: '/movements' },
+      { key: 'nav.forecasting', icon: LineChart,       path: '/forecasting' },
+      { key: 'nav.alerts',      icon: Bell,            path: '/alerts' },
     ],
   },
   {
-    label: 'Intelligence',
+    label: 'nav.intelligence',
     links: [
-      { name: 'Smart Reorder', icon: ShoppingCart, path: '/reorder' },
-      { name: 'Analytics Hub', icon: BrainCircuit,  path: '/intelligence' },
-      { name: 'AI Assistant',  icon: Sparkles,      path: '/ai' },
+      { key: 'nav.reorder',         icon: ShoppingCart, path: '/reorder' },
+      { key: 'nav.intelligenceHub', icon: BrainCircuit, path: '/intelligence' },
+      { key: 'nav.ai',              icon: Sparkles,     path: '/ai' },
+      { key: 'nav.profitLoss',      icon: TrendingUp,   path: '/profit-loss' },
     ],
   },
   {
-    label: 'Admin',
+    label: 'nav.operations',
     links: [
-      { name: 'Reports', icon: FileText, path: '/reports' },
+      { key: 'nav.scanner',     icon: ScanLine,      path: '/scanner' },
+      { key: 'nav.calendar',    icon: CalendarDays,  path: '/calendar' },
+      { key: 'nav.stockOpname', icon: ClipboardCheck, path: '/stock-opname' },
+      { key: 'nav.warehouses',  icon: Warehouse,     path: '/warehouses', minRole: 'manager' },
+    ],
+  },
+  {
+    label: 'nav.admin',
+    links: [
+      { key: 'nav.reports',   icon: FileText, path: '/reports' },
+      { key: 'nav.ecommerce', icon: Store,    path: '/ecommerce', minRole: 'manager' },
     ],
   },
 ];
 
 export default function Sidebar({ collapsed, onToggle }) {
   const { pathname } = useLocation();
+  const { user, hasRole } = useAuth();
+  const { t } = useI18n();
+
+  // Filter links/groups by role, dropping empty groups.
+  const groups = NAV_GROUPS
+    .map((g) => ({
+      ...g,
+      links: g.links.filter((l) => !l.minRole || hasRole(l.minRole)),
+    }))
+    .filter((g) => g.links.length > 0);
+
+  const avatarLetter = (user?.full_name || user?.username || '?').charAt(0).toUpperCase();
 
   return (
     <div className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
 
-      {/* â”€â”€ Brand â”€â”€ */}
+      {/* ── Brand ── */}
       <div className="sidebar__brand">
         {!collapsed && (
           <>
             <div className="sidebar__logo">
               <img src="/logo.png" alt="PantauStok" className="sidebar__logo-img" />
             </div>
-            <span className="sidebar__title">PantauStok</span>
+            <span className="sidebar__title">{t('app.name')}</span>
           </>
         )}
         <button
@@ -60,30 +88,29 @@ export default function Sidebar({ collapsed, onToggle }) {
         </button>
       </div>
 
-      {/* â”€â”€ Navigation â”€â”€ */}
+      {/* ── Navigation ── */}
       <nav className="sidebar__nav">
-        {NAV_GROUPS.map((group, gi) => (
+        {groups.map((group, gi) => (
           <div key={group.label} className="sidebar__group">
-            {/* Divider between groups when collapsed */}
             {collapsed && gi > 0 && <div className="sidebar__divider" />}
 
-            {/* Group label â€” only when expanded */}
             {!collapsed && (
-              <span className="sidebar__group-label">{group.label}</span>
+              <span className="sidebar__group-label">{t(group.label)}</span>
             )}
 
-            {group.links.map(item => {
+            {group.links.map((item) => {
               const Icon = item.icon;
+              const label = t(item.key);
               const isActive = pathname.startsWith(item.path);
               return (
                 <Link
-                  key={item.name}
+                  key={item.key}
                   to={item.path}
                   className={`sidebar__link ${isActive ? 'sidebar__link--active' : ''}`}
-                  title={item.name}   /* tooltip always â€” useful in both modes */
+                  title={label}
                 >
                   <Icon size={18} className="sidebar__icon" />
-                  {!collapsed && <span className="sidebar__link-text">{item.name}</span>}
+                  {!collapsed && <span className="sidebar__link-text">{label}</span>}
                   {!collapsed && isActive && (
                     <ChevronRight size={13} className="sidebar__link-arrow" />
                   )}
@@ -94,17 +121,16 @@ export default function Sidebar({ collapsed, onToggle }) {
         ))}
       </nav>
 
-      {/* â”€â”€ User â”€â”€ */}
+      {/* ── User ── */}
       <div className="sidebar__user">
-        <div className="sidebar__avatar" title="Admin User">A</div>
+        <div className="sidebar__avatar" title={user?.username || ''}>{avatarLetter}</div>
         {!collapsed && (
           <div className="sidebar__user-info">
-            <span className="sidebar__user-name">Admin User</span>
-            <span className="sidebar__user-role">System Admin</span>
+            <span className="sidebar__user-name">{user?.full_name || user?.username || 'User'}</span>
+            <span className="sidebar__user-role">{t(`auth.role.${user?.role || 'staff'}`)}</span>
           </div>
         )}
       </div>
     </div>
   );
 }
-

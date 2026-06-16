@@ -1,0 +1,115 @@
+// Bahasa Indonesia translations
+export default {
+  // ── Common ──
+  'app.name': 'PantauStok',
+  'common.refresh': 'Segarkan',
+  'common.save': 'Simpan',
+  'common.cancel': 'Batal',
+  'common.delete': 'Hapus',
+  'common.edit': 'Ubah',
+  'common.close': 'Tutup',
+  'common.loading': 'Memuat…',
+  'common.search': 'Cari apa saja...',
+  'common.all': 'Semua',
+  'common.actions': 'Aksi',
+  'common.status': 'Status',
+  'common.date': 'Tanggal',
+  'common.total': 'Total',
+  'common.none': 'Tidak ada',
+  'common.confirm': 'Konfirmasi',
+
+  // ── Auth ──
+  'auth.login': 'Masuk',
+  'auth.logout': 'Keluar',
+  'auth.username': 'Nama Pengguna',
+  'auth.password': 'Kata Sandi',
+  'auth.signIn': 'Masuk ke Akun',
+  'auth.welcomeBack': 'Selamat Datang Kembali',
+  'auth.subtitle': 'Masuk untuk mengelola inventaris Anda',
+  'auth.invalidCredentials': 'Nama pengguna atau kata sandi salah',
+  'auth.signingIn': 'Sedang masuk…',
+  'auth.role.admin': 'Administrator',
+  'auth.role.manager': 'Manajer',
+  'auth.role.staff': 'Staf',
+
+  // ── Navigation ──
+  'nav.core': 'Utama',
+  'nav.intelligence': 'Kecerdasan',
+  'nav.operations': 'Operasional',
+  'nav.admin': 'Administrasi',
+  'nav.dashboard': 'Dasbor',
+  'nav.products': 'Produk',
+  'nav.suppliers': 'Pemasok',
+  'nav.movements': 'Pergerakan Stok',
+  'nav.forecasting': 'Peramalan',
+  'nav.alerts': 'Peringatan',
+  'nav.reorder': 'Pemesanan Cerdas',
+  'nav.intelligenceHub': 'Pusat Analitik',
+  'nav.ai': 'Asisten AI',
+  'nav.profitLoss': 'Laba Rugi',
+  'nav.warehouses': 'Gudang',
+  'nav.scanner': 'Pindai Barcode',
+  'nav.calendar': 'Kalender',
+  'nav.stockOpname': 'Stok Opname',
+  'nav.ecommerce': 'E-Commerce',
+  'nav.reports': 'Laporan',
+
+  // ── Profit & Loss ──
+  'pnl.title': 'Analitik Laba Rugi',
+  'pnl.revenue': 'Pendapatan',
+  'pnl.cogs': 'HPP (Harga Pokok)',
+  'pnl.grossProfit': 'Laba Kotor',
+  'pnl.margin': 'Margin',
+  'pnl.byCategory': 'Laba per Kategori',
+  'pnl.trend': 'Tren Pendapatan vs HPP',
+  'pnl.topProducts': 'Produk Paling Menguntungkan',
+  'pnl.heatmap': 'Peta Panas Kategori × Pemasok',
+
+  // ── Warehouses ──
+  'wh.title': 'Multi-Gudang',
+  'wh.transfer': 'Transfer Stok',
+  'wh.consolidated': 'Tampilan Konsolidasi',
+  'wh.from': 'Dari Gudang',
+  'wh.to': 'Ke Gudang',
+  'wh.quantity': 'Jumlah',
+  'wh.addWarehouse': 'Tambah Gudang',
+
+  // ── Scanner ──
+  'scan.title': 'Pindai Barcode / QR',
+  'scan.start': 'Mulai Pindai',
+  'scan.stop': 'Hentikan',
+  'scan.placeholder': 'Arahkan kamera ke barcode atau ketik SKU manual',
+  'scan.stockIn': 'Stok Masuk',
+  'scan.stockOut': 'Stok Keluar',
+  'scan.viewDetail': 'Lihat Detail',
+  'scan.printLabel': 'Cetak Label QR',
+  'scan.notFound': 'Produk tidak ditemukan',
+
+  // ── Calendar ──
+  'cal.title': 'Kalender Inventaris',
+  'cal.movements': 'Pergerakan',
+  'cal.poArrivals': 'Kedatangan PO',
+  'cal.expiry': 'Kedaluwarsa',
+  'cal.counts': 'Penghitungan',
+
+  // ── Stock Opname ──
+  'opname.title': 'Stok Opname / Cycle Count',
+  'opname.new': 'Sesi Baru',
+  'opname.systemQty': 'Qty Sistem',
+  'opname.countedQty': 'Qty Dihitung',
+  'opname.discrepancy': 'Selisih',
+  'opname.approve': 'Setujui & Sesuaikan',
+
+  // ── E-commerce ──
+  'ec.title': 'Integrasi E-Commerce',
+  'ec.connect': 'Hubungkan',
+  'ec.disconnect': 'Putuskan',
+  'ec.sync': 'Sinkronkan',
+  'ec.orders': 'Pesanan Terbaru',
+
+  // ── Reports ──
+  'reports.title': 'Laporan & Ekspor',
+  'reports.scheduled': 'Laporan Terjadwal',
+  'reports.generate': 'Buat Laporan',
+  'reports.download': 'Unduh',
+};

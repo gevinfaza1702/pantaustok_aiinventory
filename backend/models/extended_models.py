@@ -16,9 +16,17 @@ class PurchaseOrder(Base):
     product_id = Column(UUID(as_uuid=True), ForeignKey("products.id"), nullable=False)
     order_qty = Column(Integer, nullable=False)
     unit_cost = Column(Numeric(12, 2))
-    status = Column(String(20), nullable=False, default="pending")  # pending, ordered, received, cancelled
+    status = Column(String(20), nullable=False, default="pending")  # pending, ordered, partial, received, cancelled
     trigger = Column(String(50), default="manual")  # manual, auto_reorder
     notes = Column(Text)
+
+    # PO lifecycle tracking
+    expected_arrival = Column(DateTime)
+    actual_arrival = Column(DateTime)
+    received_qty = Column(Integer, default=0)
+    partial_received = Column(Boolean, default=False)
+    ordered_at = Column(DateTime)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

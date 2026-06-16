@@ -4,6 +4,7 @@ Handles anomaly detection and natural language inventory queries via SumoPod LLM
 """
 
 import json
+import logging
 from typing import Dict, Any, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,11 +14,25 @@ from openai import AsyncOpenAI
 from config import settings
 from models.db_models import Product, StockMovement
 
+logger = logging.getLogger(__name__)
+
 
 def _get_client() -> AsyncOpenAI:
     return AsyncOpenAI(
         api_key=settings.SUMOPOD_API_KEY,
         base_url=settings.SUMOPOD_BASE_URL,
+    )
+
+
+def _provider_unavailable_message(lang: str = "id") -> str:
+    if lang == "en":
+        return (
+            "The AI provider is currently unavailable or not configured correctly. "
+            "Please check SUMOPOD_API_KEY, SUMOPOD_BASE_URL, SUMOPOD_MODEL, then restart the backend."
+        )
+    return (
+        "Layanan AI sedang tidak tersedia atau konfigurasinya belum valid. "
+        "Periksa SUMOPOD_API_KEY, SUMOPOD_BASE_URL, SUMOPOD_MODEL, lalu restart backend."
     )
 
 
@@ -66,6 +81,9 @@ async def detect_anomalies(session: AsyncSession) -> List[Dict[str, Any]]:
 
 async def get_anomaly_narrative(session: AsyncSession, lang: str = "id") -> str:
     """Use LLM to generate an AI anomaly report in the chosen language."""
+    if not settings.SUMOPOD_API_KEY:
+        return _provider_unavailable_message(lang)
+
     anomalies = await detect_anomalies(session)
 
     if not anomalies:
@@ -83,29 +101,33 @@ async def get_anomaly_narrative(session: AsyncSession, lang: str = "id") -> str:
         "Respond ONLY in English."
     )
 
-    client = _get_client()
-    response = await client.chat.completions.create(
-        model=settings.SUMOPOD_MODEL,
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    f"You are an inventory intelligence system. {lang_instruction} "
-                    "Analyze the following anomalies and write a concise, actionable report "
-                    "in 3-4 sentences for a warehouse manager. "
-                    "Prioritize critical issues and suggest specific next steps."
-                ),
-            },
-            {
-                "role": "user",
-                "content": f"Anomaly data:\n{summary}",
-            },
-        ],
-        max_tokens=400,
-        temperature=0.4,
-    )
-
-    return response.choices[0].message.content.strip()
+    try:
+        client = _get_client()
+        response = await client.chat.completions.create(
+            model=settings.SUMOPOD_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        f"You are an inventory intelligence system. {lang_instruction} "
+                        "Analyze the following anomalies and write a concise, actionable report "
+                        "in 3-4 sentences for a warehouse manager. "
+                        "Prioritize critical issues and suggest specific next steps."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Anomaly data:\n{summary}",
+                },
+            ],
+            max_tokens=400,
+            temperature=0.4,
+        )
+        content = response.choices[0].message.content or ""
+        return content.strip() or _provider_unavailable_message(lang)
+    except Exception as exc:
+        logger.exception("Failed to generate anomaly narrative: %s", exc)
+        return _provider_unavailable_message(lang)
 
 
 # ─── Natural Language Query ──────────────────────────────────────────────────
@@ -114,6 +136,9 @@ async def natural_language_query(session: AsyncSession, question: str, lang: str
     """
     Answer free-form inventory questions using live database context + LLM.
     """
+    if not settings.SUMOPOD_API_KEY:
+        return _provider_unavailable_message(lang)
+
     products_result = await session.execute(
         select(
             Product.name, Product.sku, Product.category,
@@ -132,28 +157,32 @@ async def natural_language_query(session: AsyncSession, question: str, lang: str
         "Respond ONLY in English. Be clear and concise."
     )
 
-    client = _get_client()
-    response = await client.chat.completions.create(
-        model=settings.SUMOPOD_MODEL,
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    f"You are PantauStok AI, an intelligent inventory assistant. {lang_instruction} "
-                    "Answer the user's question based ONLY on the provided inventory data. "
-                    "If you cannot answer from the data, say so."
-                ),
-            },
-            {
-                "role": "user",
-                "content": (
-                    f"Current Inventory Snapshot:\n{product_context}\n\n"
-                    f"Question: {question}"
-                ),
-            },
-        ],
-        max_tokens=500,
-        temperature=0.3,
-    )
-
-    return response.choices[0].message.content.strip()
+    try:
+        client = _get_client()
+        response = await client.chat.completions.create(
+            model=settings.SUMOPOD_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        f"You are PantauStok AI, an intelligent inventory assistant. {lang_instruction} "
+                        "Answer the user's question based ONLY on the provided inventory data. "
+                        "If you cannot answer from the data, say so."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Current Inventory Snapshot:\n{product_context}\n\n"
+                        f"Question: {question}"
+                    ),
+                },
+            ],
+            max_tokens=500,
+            temperature=0.3,
+        )
+        content = response.choices[0].message.content or ""
+        return content.strip() or _provider_unavailable_message(lang)
+    except Exception as exc:
+        logger.exception("Failed to answer natural language inventory query: %s", exc)
+        return _provider_unavailable_message(lang)

@@ -5,21 +5,21 @@
 
 import { useEffect, useState } from 'react';
 import { reorderAPI } from '../services/api';
-import { ShoppingCart, AlertTriangle, CheckCircle, Clock, Package, RefreshCw } from 'lucide-react';
-import { formatCurrency } from '../utils/formatters';
+import { ShoppingCart, AlertTriangle, CheckCircle, Clock, Package, RefreshCw, X, PackageCheck } from 'lucide-react';
+import { formatCurrency, formatDate } from '../utils/formatters';
 import Badge from '../components/Badge';
 import './Reorder.css';
 
 const STATUS_BADGE = {
   pending:   'warning',
   ordered:   'info',
+  partial:   'accent',
   received:  'success',
   cancelled: 'danger',
 };
 
 const NEXT_STATUS = {
   pending:  'ordered',
-  ordered:  'received',
 };
 
 export default function Reorder() {
@@ -28,6 +28,10 @@ export default function Reorder() {
   const [loading, setLoading]         = useState(true);
   const [placing, setPlacing]         = useState(null);
   const [tab, setTab]                 = useState('suggestions'); // 'suggestions' | 'orders'
+  const [detailPO, setDetailPO]       = useState(null);   // selected PO for the detail modal
+  const [timeline, setTimeline]       = useState(null);
+  const [receiveQty, setReceiveQty]   = useState('');
+  const [receiving, setReceiving]     = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -72,6 +76,37 @@ export default function Reorder() {
       await fetchAll();
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const openDetail = async (order) => {
+    setDetailPO(order);
+    setTimeline(null);
+    setReceiveQty(String(Math.max(1, order.order_qty - (order.received_qty || 0))));
+    try {
+      const r = await reorderAPI.getTimeline(order.id);
+      setTimeline(r.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const closeDetail = () => { setDetailPO(null); setTimeline(null); };
+
+  const handleReceive = async () => {
+    if (!detailPO) return;
+    const qty = Number(receiveQty);
+    if (!qty || qty <= 0) return;
+    setReceiving(true);
+    try {
+      await reorderAPI.receive(detailPO.id, { received_qty: qty });
+      await fetchAll();
+      closeDetail();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.detail || 'Gagal mencatat penerimaan');
+    } finally {
+      setReceiving(false);
     }
   };
 
@@ -215,7 +250,7 @@ export default function Reorder() {
                     <td><Badge type={o.trigger === 'auto_reorder' ? 'accent' : 'neutral'} text={o.trigger} /></td>
                     <td><Badge type={STATUS_BADGE[o.status] || 'neutral'} text={o.status} /></td>
                     <td className="text-secondary text-sm">{new Date(o.created_at).toLocaleDateString()}</td>
-                    <td>
+                    <td className="po-actions">
                       {NEXT_STATUS[o.status] && (
                         <button
                           className="btn btn-secondary"
@@ -224,6 +259,9 @@ export default function Reorder() {
                           → {NEXT_STATUS[o.status]}
                         </button>
                       )}
+                      <button className="btn btn-secondary" onClick={() => openDetail(o)}>
+                        Detail
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -231,6 +269,71 @@ export default function Reorder() {
             </table>
           </div>
         )
+      )}
+
+      {/* ── PO Detail / Timeline Modal ── */}
+      {detailPO && (
+        <div className="po-modal-overlay" onClick={closeDetail}>
+          <div className="po-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="po-modal__header">
+              <div>
+                <h2>{detailPO.product_name}</h2>
+                <span className="po-modal__sub">{detailPO.supplier_name} · {detailPO.order_qty} unit</span>
+              </div>
+              <button onClick={closeDetail}><X size={18} /></button>
+            </div>
+
+            <div className="po-modal__body">
+              {/* Timeline */}
+              <div className="po-timeline">
+                {!timeline ? (
+                  <div className="reorder-loading"><div className="spinner" /></div>
+                ) : (
+                  timeline.timeline.map((ev) => (
+                    <div key={ev.stage} className={`po-timeline__step ${ev.done ? 'po-timeline__step--done' : ''}`}>
+                      <div className="po-timeline__dot" />
+                      <div className="po-timeline__content">
+                        <span className="po-timeline__label">{ev.label}</span>
+                        <span className="po-timeline__date">{ev.at ? formatDate(ev.at, true) : '—'}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Lead-time accuracy */}
+              {timeline?.lead_time_accuracy && (
+                <div className={`po-leadtime ${timeline.lead_time_accuracy.on_time ? 'po-leadtime--ok' : 'po-leadtime--late'}`}>
+                  {timeline.lead_time_accuracy.on_time
+                    ? 'Tiba tepat waktu ✓'
+                    : `Terlambat ${timeline.lead_time_accuracy.delta_days} hari`}
+                </div>
+              )}
+
+              {/* Partial receive */}
+              {detailPO.status !== 'received' && detailPO.status !== 'cancelled' && (
+                <div className="po-receive">
+                  <h3><PackageCheck size={16} /> Terima Barang</h3>
+                  <p className="po-receive__hint">
+                    Sudah diterima: {detailPO.received_qty || 0} / {detailPO.order_qty}
+                  </p>
+                  <div className="po-receive__row">
+                    <input
+                      type="number"
+                      min="1"
+                      max={detailPO.order_qty - (detailPO.received_qty || 0)}
+                      value={receiveQty}
+                      onChange={(e) => setReceiveQty(e.target.value)}
+                    />
+                    <button className="btn btn-primary" disabled={receiving} onClick={handleReceive}>
+                      {receiving ? '...' : 'Catat Penerimaan'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,0 +1,115 @@
+// English translations
+export default {
+  // ── Common ──
+  'app.name': 'PantauStok',
+  'common.refresh': 'Refresh',
+  'common.save': 'Save',
+  'common.cancel': 'Cancel',
+  'common.delete': 'Delete',
+  'common.edit': 'Edit',
+  'common.close': 'Close',
+  'common.loading': 'Loading…',
+  'common.search': 'Search anything...',
+  'common.all': 'All',
+  'common.actions': 'Actions',
+  'common.status': 'Status',
+  'common.date': 'Date',
+  'common.total': 'Total',
+  'common.none': 'None',
+  'common.confirm': 'Confirm',
+
+  // ── Auth ──
+  'auth.login': 'Login',
+  'auth.logout': 'Logout',
+  'auth.username': 'Username',
+  'auth.password': 'Password',
+  'auth.signIn': 'Sign In',
+  'auth.welcomeBack': 'Welcome Back',
+  'auth.subtitle': 'Sign in to manage your inventory',
+  'auth.invalidCredentials': 'Incorrect username or password',
+  'auth.signingIn': 'Signing in…',
+  'auth.role.admin': 'Administrator',
+  'auth.role.manager': 'Manager',
+  'auth.role.staff': 'Staff',
+
+  // ── Navigation ──
+  'nav.core': 'Core',
+  'nav.intelligence': 'Intelligence',
+  'nav.operations': 'Operations',
+  'nav.admin': 'Admin',
+  'nav.dashboard': 'Dashboard',
+  'nav.products': 'Products',
+  'nav.suppliers': 'Suppliers',
+  'nav.movements': 'Stock Movements',
+  'nav.forecasting': 'Forecasting',
+  'nav.alerts': 'Alerts',
+  'nav.reorder': 'Smart Reorder',
+  'nav.intelligenceHub': 'Analytics Hub',
+  'nav.ai': 'AI Assistant',
+  'nav.profitLoss': 'Profit & Loss',
+  'nav.warehouses': 'Warehouses',
+  'nav.scanner': 'Barcode Scan',
+  'nav.calendar': 'Calendar',
+  'nav.stockOpname': 'Stock Opname',
+  'nav.ecommerce': 'E-Commerce',
+  'nav.reports': 'Reports',
+
+  // ── Profit & Loss ──
+  'pnl.title': 'Profit & Loss Analytics',
+  'pnl.revenue': 'Revenue',
+  'pnl.cogs': 'COGS',
+  'pnl.grossProfit': 'Gross Profit',
+  'pnl.margin': 'Margin',
+  'pnl.byCategory': 'Profit by Category',
+  'pnl.trend': 'Revenue vs COGS Trend',
+  'pnl.topProducts': 'Most Profitable Products',
+  'pnl.heatmap': 'Category × Supplier Heatmap',
+
+  // ── Warehouses ──
+  'wh.title': 'Multi-Warehouse',
+  'wh.transfer': 'Transfer Stock',
+  'wh.consolidated': 'Consolidated View',
+  'wh.from': 'From Warehouse',
+  'wh.to': 'To Warehouse',
+  'wh.quantity': 'Quantity',
+  'wh.addWarehouse': 'Add Warehouse',
+
+  // ── Scanner ──
+  'scan.title': 'Barcode / QR Scan',
+  'scan.start': 'Start Scan',
+  'scan.stop': 'Stop',
+  'scan.placeholder': 'Point camera at a barcode or type SKU manually',
+  'scan.stockIn': 'Stock In',
+  'scan.stockOut': 'Stock Out',
+  'scan.viewDetail': 'View Detail',
+  'scan.printLabel': 'Print QR Label',
+  'scan.notFound': 'Product not found',
+
+  // ── Calendar ──
+  'cal.title': 'Inventory Calendar',
+  'cal.movements': 'Movements',
+  'cal.poArrivals': 'PO Arrivals',
+  'cal.expiry': 'Expiry',
+  'cal.counts': 'Cycle Counts',
+
+  // ── Stock Opname ──
+  'opname.title': 'Stock Opname / Cycle Count',
+  'opname.new': 'New Session',
+  'opname.systemQty': 'System Qty',
+  'opname.countedQty': 'Counted Qty',
+  'opname.discrepancy': 'Discrepancy',
+  'opname.approve': 'Approve & Adjust',
+
+  // ── E-commerce ──
+  'ec.title': 'E-Commerce Integration',
+  'ec.connect': 'Connect',
+  'ec.disconnect': 'Disconnect',
+  'ec.sync': 'Sync',
+  'ec.orders': 'Recent Orders',
+
+  // ── Reports ──
+  'reports.title': 'Reports & Exports',
+  'reports.scheduled': 'Scheduled Reports',
+  'reports.generate': 'Generate Report',
+  'reports.download': 'Download',
+};

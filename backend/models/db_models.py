@@ -56,6 +56,7 @@ class StockMovement(Base):
     product_id = Column(UUID(as_uuid=True), ForeignKey('products.id'), nullable=False, index=True)
     movement_type = Column(String(20), nullable=False, index=True) # in, out, adjustment
     quantity = Column(Integer, nullable=False)
+    warehouse_id = Column(UUID(as_uuid=True), ForeignKey('warehouses.id'), nullable=True, index=True)
     reference = Column(String(100))
     notes = Column(Text)
     unit_cost = Column(Numeric(12, 2))
